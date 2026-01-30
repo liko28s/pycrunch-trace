@@ -1,6 +1,12 @@
 import requests
-
+import logging
 from pycrunch_trace.client.api import trace
+
+# Enable logging to see the tracer output
+logging.basicConfig(
+    level=logging.INFO,
+    format='pycrunch-trace | %(asctime)s | %(levelname)-8s | %(message)s'
+)
 
 
 def some_code():
