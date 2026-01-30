@@ -26,7 +26,7 @@ class CustomFileFilter(AbstractFileFilter):
     def should_trace(self, filename: str):
         self._ensure_loaded()
         if filename.startswith(self.exclusions) or filename.endswith(self.exclusions):
-            # print('should_trace: false - filename= '+filename)
+            logger.debug(f'should_trace: false - filename= {filename}')
             return False
         return True
 
@@ -64,7 +64,7 @@ class CustomFileFilter(AbstractFileFilter):
         if isinstance(trace_vars, bool):
             self._trace_variables = trace_vars
             if not self._trace_variables:
-                print('!! PyCrunch - Variables will not be recorded in session')
+                logger.info('Optimization: Variable recording is disabled for this profile.')
 
     def should_record_variables(self) -> bool:
         self._ensure_loaded()

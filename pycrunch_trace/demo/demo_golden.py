@@ -7,8 +7,8 @@ def some_code():
     for x in range(1):
         req = requests.get('https://google.com')
         code = req.status_code
-        print(str(x))
-        print(code)
+        # print(str(x))
+        # print(code)
 
 @trace
 def run_youtube_code():

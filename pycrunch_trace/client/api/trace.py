@@ -15,6 +15,9 @@ pyximport.install()
 from pycrunch_trace.native.native_tracer import NativeTracer
 
 from pycrunch_trace.tracing.simple_tracer import SimpleTracer
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Trace:
@@ -39,7 +42,8 @@ class Trace:
     def start(self, session_name: str = None, host: str = None, profile_name: str = None, additional_excludes: List[str] = None):
 
         if self.is_tracing:
-            raise Exception('PyCrunch tracer ERROR: tracing already started')
+            logger.error('Tracing has already been started for this session.')
+            raise Exception('Tracing already started.')
 
         self.prepare_state(host, session_name)
         self.warn_if_another_tracing_set()
@@ -77,10 +81,7 @@ class Trace:
 
     def warn_if_another_tracing_set(self):
         if sys.gettrace():
-            # there is already trace
-            print('PyCrunch tracer WARNING:')
-            print('  -- there is already trace function set. ')
-            print('  -- continuing might result in errors ')
+            logger.warning('Another trace function is already set. Tracing might result in errors.')
 
     def prepare_state(self, host, session_name):
         if not session_name:
@@ -98,7 +99,7 @@ class Trace:
         inline_profiler_instance.print_timings()
         # import pydevd_pycharm
         # pydevd_pycharm.settrace('localhost', port=44441, stdoutToServer=True, stderrToServer=True)
-        print('tracing complete, saving results')
+        logger.info('Tracing complete. Saving results...')
         self.is_tracing = False
         # snapshot.save('a', self.command_buffer)
         local = False

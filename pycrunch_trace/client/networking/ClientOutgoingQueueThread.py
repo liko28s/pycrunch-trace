@@ -41,7 +41,7 @@ class ClientQueueThread:
     _strategy: AbstractRecordingStrategy
 
     def __init__(self):
-        print(f'PID: {os.getpid()} ClientQueueThread init')
+        logger.debug(f'Initialized ClientQueueThread (PID: {os.getpid()})')
         self._counter = 0
         self.so_far = 0
         self.is_connected = False
@@ -56,31 +56,28 @@ class ClientQueueThread:
         try:
             self.outgoingQueue.put_nowait(StartCommand(session_id))
         except Exception as e:
-            print('EXCEPTION')
-            print(e)
+            logger.error('EXCEPTION in tracing_will_start', exc_info=True)
 
 
     def put_events(self, events: EventsSlice):
         self.so_far +=  len(events.events)
-        print(f'{events.session_id} - put_events: so far: {self.so_far}')
+        logger.debug(f'{events.session_id} - put_events: so far: {self.so_far}')
         self.ensure_thread_started()
         try:
             self.outgoingQueue.put_nowait(events)
         except Exception as e:
-            print('EXCEPTION while put_events')
-            print(e)
+            logger.error('EXCEPTION while put_events', exc_info=True)
 
     def put_file_slice(self, events: FileContentSlice):
-        print('put_file_slice')
+        logger.debug('put_file_slice')
         self.ensure_thread_started()
         try:
             self.outgoingQueue.put_nowait(events)
         except Exception as e:
-            print('EXCEPTION while put_file_slice')
-            print(e)
+            logger.error('EXCEPTION while put_file_slice', exc_info=True)
 
     def tracing_did_complete(self, session_id, session: TraceSession):
-        print('tracing_did_complete')
+        logger.debug('Tracing session completed.')
         self.ensure_thread_started()
         self.outgoingQueue.put_nowait(
             StopCommand(
@@ -95,7 +92,7 @@ class ClientQueueThread:
         if self.is_thread_running:
             return
 
-        print('socketio init')
+        logger.info(f'Starting outgoing message dispatcher thread (PID: {os.getpid()}).')
         x = threading.Thread(target=self.thread_proc, args=(42,))
         # x.setDaemon(True)
         x.setDaemon(False)
@@ -132,24 +129,24 @@ class ClientQueueThread:
                 print(exc_type, fname, exc_tb.tb_lineno)
                 continue
         # end while
-        print('Thread stopped')
+        logger.info('Messenger thread stopped.')
         self._strategy.clean()
         self.is_thread_running = False
 
     def process_single_message(self, x: AbstractNetworkCommand):
-        print(f'got evt {x.command_name}')
+        logger.debug(f'Processing command: {x.command_name}')
         if x.command_name == 'StartCommand':
             self._strategy.recording_start(x.session_id)
         if x.command_name == 'StopCommand':
-            logger.info('got ' + x.command_name)
+            logger.debug(f'ACK: {x.command_name}')
             self._strategy.recording_stop(x.session_id, x.files_included, x.files_excluded)
         if x.command_name == 'FileContentSlice':
-            logger.info('got ' + x.command_name)
+            logger.debug(f'ACK: {x.command_name}')
             self._strategy.files_slice(x)
-        logger.info('Sending... ' + x.command_name)
+        logger.debug(f'Sending {x.command_name}...')
         if x.command_name == 'EventsSlice':
             self._strategy.recording_slice(x)
-            logger.info('Sent... ' + x.command_name)
+            logger.debug(f'Successfully sent {x.command_name}.')
 
     def ensure_thread_started(self):
         if not self.is_thread_running:
