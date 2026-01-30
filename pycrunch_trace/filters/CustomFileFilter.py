@@ -29,6 +29,12 @@ class CustomFileFilter(AbstractFileFilter):
 
     def should_trace(self, filename: str):
         self._ensure_loaded()
+        
+        # Check for builtin/frozen modules if configured
+        if config.exclude_builtins:
+            if not filename or filename.startswith('<') or 'lib/python' in filename:
+                return False
+
         if filename.startswith(self.exclusions) or filename.endswith(self.exclusions):
             logger.debug(f'should_trace: false - filename= {filename}')
             return False
