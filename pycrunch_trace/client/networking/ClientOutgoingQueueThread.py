@@ -98,17 +98,16 @@ class ClientQueueThread:
         )
 
     def start(self):
-        print(f'start thread dispather queue with pid: {os.getpid()}')
         if self.is_thread_running:
             return
 
         logger.info(f'Starting outgoing message dispatcher thread (PID: {os.getpid()}).')
         x = threading.Thread(target=self.thread_proc, args=(42,))
-        # x.setDaemon(True)
-        x.setDaemon(False)
+        x.daemon = True
         x.start()
         # todo lock?
         self.is_thread_running = True
+        self._thread = x
 
 
     def thread_proc(self, obj):
@@ -136,6 +135,12 @@ class ClientQueueThread:
         logger.info('Messenger thread stopped.')
         self._strategy.clean()
         self.is_thread_running = False
+
+    def join(self):
+        if self.is_thread_running and self._thread:
+            # Put a sentinel to stop the thread if it's waiting
+            # self.outgoingQueue.put(None)
+            self._thread.join()
 
     def process_single_message(self, x: AbstractNetworkCommand):
         logger.debug(f'Processing command: {x.command_name}')
