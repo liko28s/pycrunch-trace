@@ -11,6 +11,7 @@ from pycrunch_trace.file_system.trace_session import TraceSession
 
 pyximport.install()
 from pycrunch_trace.client.networking.strategies.native_write_strategy import NativeLocalRecordingStrategy
+from pycrunch_trace.config import config
 
 
 import logging
@@ -47,8 +48,17 @@ class ClientQueueThread:
         self.is_connected = False
         self.outgoingQueue = Queue()
         self.is_thread_running = False
-        current_strategy = 'native_local'
-        if current_strategy == 'native_local':
+        
+        if config.s3_enabled:
+            # Conditional import to avoid hard dependency on boto3
+            try:
+                from pycrunch_trace.client.networking.strategies.s3_strategy import S3RecordingStrategy
+                self._strategy = S3RecordingStrategy()
+                logger.info("Storage backend: S3 Recording Strategy enabled.")
+            except ImportError:
+                logger.error("Boto3 not found. Falling back to local recording strategy.")
+                self._strategy = NativeLocalRecordingStrategy()
+        else:
             self._strategy = NativeLocalRecordingStrategy()
 
     def tracing_will_start(self, session_id: str):
@@ -102,31 +112,25 @@ class ClientQueueThread:
 
 
     def thread_proc(self, obj):
-        logging.info("Thread ClientQueueThread::thread_proc: starting")
+        logger.debug("Message processing loop started.")
 
         self._strategy.prepare()
 
 
         while True:
-            logger.info('outgoingQueue.get: Waiting for message...')
+            logger.debug('Dispatcher waiting for new message in queue...')
             try:
                 x: AbstractNetworkCommand = self.outgoingQueue.get(True, 3)
-                print(f'queue length {len(self.outgoingQueue.queue)}')
+                logger.debug(f'Queue length: {len(self.outgoingQueue.queue)}')
 
                 if x is not None:
                     self.process_single_message(x)
             except Empty:
-                print('Timeout while waiting for new msg... Thread will stop for now')
+                logger.debug('Dispatcher timeout: no new messages. Ending loop.')
                 break
-                pass
 
             except Exception as ex:
-                logger.info('Ex while getting message from queue')
-                print('===!!! Ex while getting message from queue')
-                print(str(ex))
-                exc_type, exc_obj, exc_tb = sys.exc_info()
-                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                print(exc_type, fname, exc_tb.tb_lineno)
+                logger.error('Error while retrieving message from queue.', exc_info=True)
                 continue
         # end while
         logger.info('Messenger thread stopped.')

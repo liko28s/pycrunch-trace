@@ -4,6 +4,10 @@ import yaml
 
 from . import AbstractFileFilter
 from ..oop import AbstractFile
+from ..config import config
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CustomFileFilter(AbstractFileFilter):
