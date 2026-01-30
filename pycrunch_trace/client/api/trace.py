@@ -96,7 +96,13 @@ class Trace:
         
         safe_name = SafeFilename(final_name).__str__()
         
-        
+        if config.organize_by_date:
+            # Create a structured date folder (e.g., 2026_01_29_22_47_04)
+            date_prefix = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+            self.session_name = f"{date_prefix}/{safe_name}"
+        else:
+            self.session_name = safe_name
+            
         if host:
             self.host = host
         else:
