@@ -9,6 +9,7 @@ from pycrunch_trace.client.networking import event_queue
 from pycrunch_trace.filters import CustomFileFilter
 from pycrunch_trace.oop import File, Clock, SafeFilename
 from pycrunch_trace.tracing.inline_profiler import inline_profiler_instance
+from pycrunch_trace.config import config
 
 import pyximport
 pyximport.install()
@@ -85,9 +86,17 @@ class Trace:
 
     def prepare_state(self, host, session_name):
         if not session_name:
-            self.session_name = SafeFilename(self.generate_session_name()).__str__()
+            final_name = self.generate_session_name()
         else:
-            self.session_name = SafeFilename(session_name).__str__()
+            final_name = session_name
+            if config.keep_sessions:
+                # Append 5 chars UUID to ensure uniqueness
+                u = str(uuid.uuid4())[:5]
+                final_name = f"{final_name}_{u}"
+        
+        safe_name = SafeFilename(final_name).__str__()
+        
+        
         if host:
             self.host = host
         else:
