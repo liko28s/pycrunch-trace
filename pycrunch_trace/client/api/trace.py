@@ -125,6 +125,11 @@ class Trace:
 
         self._tracer.flush_outstanding_events()
         self._tracer.finalize()
+        
+        # Ensure all events are flushed via the queue thread
+        if self.outgoingQueue:
+            logger.info("Waiting for the event queue to flush before exit...")
+            self.outgoingQueue.join()
 
             # self._tracer.session.save()
 
